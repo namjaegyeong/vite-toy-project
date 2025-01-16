@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { EstateFetchResponse, EstateDetail } from './interfaces';
+import { EstateFetchResponse, EstateDetail } from './interfaces/estate';
 import axios from 'axios';
 
 const API_URL = 'YOUR_API_URL_HERE';
