@@ -1,9 +1,9 @@
 // Interface for the duplicate check request body
-export interface CheckUserIdRequest {
+export interface CheckIdExistsRequest {
     userId: string;
 }
 
 // Interface for the duplicate check response body
-export interface CheckUserIdResponse {
+export interface GenericStatusResponse {
     result: boolean;
 }

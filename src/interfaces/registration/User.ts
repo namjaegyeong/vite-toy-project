@@ -3,5 +3,5 @@ export interface User {
     password: string;
     userName: string;
     phoneNumber: string;
-    memberType: "USER" | "ADMIN" | string; // Here you can restrict the member type if needed
+    memberType: "USER" | string; // Here you can restrict the member type if needed
 }

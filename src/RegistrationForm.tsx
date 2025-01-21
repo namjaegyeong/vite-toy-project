@@ -1,12 +1,17 @@
 import React, { useState, ChangeEvent } from 'react';
 import axios from 'axios';
 import { User } from './interfaces/registration/User';
-import { CheckUserIdRequest, CheckUserIdResponse } from './interfaces/duplicatecheck/DuplicateCheckInterfaces';
+import { CheckIdExistsRequest, GenericStatusResponse } from './interfaces/duplicatecheck/DuplicateCheckInterfaces';
+
+interface RegistrationData extends User {
+    confirmPassword: string;
+}
 
 const RegistrationWithoutForm: React.FC = () => {
-  const [userData, setUserData] = useState<User>({
+  const [userData, setUserData] = useState<RegistrationData>({
     userId: '',
     password: '',
+    confirmPassword: '', // extra field for confirmation
     userName: '',
     phoneNumber: '',
     memberType: 'USER',
@@ -17,6 +22,7 @@ const RegistrationWithoutForm: React.FC = () => {
   const [idMessage, setIdMessage] = useState<string>('');
   const [isUserIdUnique, setIsUserIdUnique] = useState<boolean>(false);
   const [checkingId, setCheckingId] = useState<boolean>(false);
+  const [passwordMismatch, setPasswordMismatch] = useState<boolean>(false);
 
   // Update fields when the user types
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -27,6 +33,13 @@ const RegistrationWithoutForm: React.FC = () => {
       setIdMessage('');
     }
     setUserData(prev => ({ ...prev, [name]: value }));
+
+    // Check mismatch if password or confirmPassword changes
+    if (name === 'password' || name === 'confirmPassword') {
+        const newPassword = name === 'password' ? value : userData.password;
+        const newConfirm = name === 'confirmPassword' ? value : userData.confirmPassword;
+        setPasswordMismatch(newPassword !== newConfirm);
+    }
   };
 
   // Function to check duplicate for user ID when button is clicked.
@@ -39,12 +52,10 @@ const RegistrationWithoutForm: React.FC = () => {
     setCheckingId(true);
     try {
       // Build the request body based on the interface
-      const requestData: CheckUserIdRequest = { userId: userData.userId };
-      const response = await axios.get<CheckUserIdResponse>('https://lab.dja.kr/api/v1/auth/exists', {
-        params: requestData,
-      });
-      
-      if (response.data.result) {
+      const requestData: CheckIdExistsRequest = { userId: userData.userId };
+      const response = await axios.post<GenericStatusResponse>('https://lab.dja.kr/api/v1/auth/exists', requestData);
+
+      if (!response.data.result) {
         setIdMessage('User ID is available.');
         setIsUserIdUnique(true);
       } else {
@@ -65,6 +76,10 @@ const RegistrationWithoutForm: React.FC = () => {
       setApiMessage('Please check that your User ID is unique.');
       return;
     }
+    if(passwordMismatch) {
+        setApiMessage('Passwords do not match.');
+        return;
+    }
     try {
       // Replace with your registration endpoint.
       const response = await axios.post('https://lab.dja.kr/api/v1/auth/register', userData);
@@ -78,97 +93,114 @@ const RegistrationWithoutForm: React.FC = () => {
 
   return (
     <div style={{ maxWidth: '400px', margin: '0 auto' }}>
-      <h2>User Registration</h2>
-      {apiMessage && <p>{apiMessage}</p>}
+        <h2>User Registration</h2>
+        {apiMessage && <p>{apiMessage}</p>}
 
-      {/* User ID Field with duplicate check button */}
-      <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center' }}>
+    {/* User ID Field with duplicate check button */}
+    <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center' }}>
         <div style={{ flexGrow: 1 }}>
-          <label>
+            <label>
             User ID:
             <input
-              type="text"
-              name="userId"
-              value={userData.userId}
-              onChange={handleChange}
-              required
-              style={{ width: '100%' }}
+                type="text"
+                name="userId"
+                value={userData.userId}
+                onChange={handleChange}
+                required
+                style={{ width: '100%' }}
             />
-          </label>
+            </label>
         </div>
         <div style={{ marginLeft: '10px' }}>
-          <button onClick={checkDuplicateUserId} disabled={checkingId}>
+            <button onClick={checkDuplicateUserId} disabled={checkingId}>
             {checkingId ? 'Checking...' : 'Check ID'}
-          </button>
+            </button>
         </div>
-      </div>
-      {idMessage && <p style={{ color: isUserIdUnique ? 'green' : 'red' }}>{idMessage}</p>}
+    </div>
+    {idMessage && <p style={{ color: isUserIdUnique ? 'green' : 'red' }}>{idMessage}</p>}
 
-      {/* Password Field */}
-      <div style={{ marginBottom: '10px' }}>
+    {/* Password Field */}
+    <div style={{ marginBottom: '10px' }}>
         <label>
-          Password:
-          <input
+            Password:
+            <input
             type="password"
             name="password"
             value={userData.password}
             onChange={handleChange}
             required
             style={{ width: '100%' }}
-          />
+            />
         </label>
-      </div>
+    </div>
 
-      {/* User Name Field */}
-      <div style={{ marginBottom: '10px' }}>
+    {/* Confirm Password */}
+    <div style={{ marginBottom: '10px' }}>
         <label>
-          User Name:
-          <input
+            Confirm Password:
+            <input
+            type="password"
+            name="confirmPassword"
+            value={userData.confirmPassword}
+            onChange={handleChange}
+            required
+            style={{ width: '100%' }}
+            />
+        </label>
+        {passwordMismatch && (
+            <p style={{ color: 'red' }}>Passwords do not match.</p>
+        )}
+    </div>
+
+    {/* User Name Field */}
+    <div style={{ marginBottom: '10px' }}>
+        <label>
+            User Name:
+            <input
             type="text"
             name="userName"
             value={userData.userName}
             onChange={handleChange}
             required
             style={{ width: '100%' }}
-          />
+            />
         </label>
-      </div>
+    </div>
 
-      {/* Phone Number Field */}
-      <div style={{ marginBottom: '10px' }}>
+    {/* Phone Number Field */}
+    <div style={{ marginBottom: '10px' }}>
         <label>
-          Phone Number:
-          <input
+            Phone Number:
+            <input
             type="tel"
             name="phoneNumber"
             value={userData.phoneNumber}
             onChange={handleChange}
             required
             style={{ width: '100%' }}
-          />
+            />
         </label>
-      </div>
+    </div>
 
-      {/* Member Type Field */}
-      <div style={{ marginBottom: '10px' }}>
+    {/* Member Type Field */}
+    <div style={{ marginBottom: '10px' }}>
         <label>
-          Member Type:
-          <select
+            Member Type:
+            <select
             name="memberType"
             value={userData.memberType}
             onChange={handleChange}
             style={{ width: '100%' }}
-          >
+            >
             <option value="USER">USER</option>
-            <option value="ADMIN">ADMIN</option>
-          </select>
+            </select>
         </label>
-      </div>
+    </div>
 
-      {/* Registration Button */}
-      <button onClick={registerUser} style={{ width: '100%' }}>
+    {/* Registration Button */}
+    <button onClick={registerUser} style={{ width: '100%' }}>
         Register
-      </button>
+    </button>
     </div>
   );
 };
